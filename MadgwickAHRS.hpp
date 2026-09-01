@@ -217,8 +217,8 @@ class MadgwickAHRS : public LibXR::Application {
         LibXR::Thread::Sleep(10000);
         float yaw = ahrs->euler_.Yaw();
 
-        LibXR::STDIO::Printf<"Zero offset:%f°/min\r\n">((yaw - start_yaw) /
-                                                        M_PI * 180.0f * 6.0f);
+        LibXR::STDIO::Printf<"Zero offset:%f°/min\r\n">(
+            (yaw - start_yaw) / LibXR::PI * 180.0f * 6.0f);
       }
     } else if (argc == 4) {
       std::string cmd(argv[1]);
