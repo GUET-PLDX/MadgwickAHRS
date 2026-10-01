@@ -165,34 +165,12 @@ class MadgwickAHRS : public LibXR::Application {
     this->quaternion_.z() += q_dot4 * this->dt_;
 
     /* Normalise quaternion */
-    recip_norm = InvSqrtf(this->quaternion_.w() * this->quaternion_.w() +
-                          this->quaternion_.x() * this->quaternion_.x() +
-                          this->quaternion_.y() * this->quaternion_.y() +
-                          this->quaternion_.z() * this->quaternion_.z());
-    this->quaternion_.w() *= recip_norm;
-    this->quaternion_.x() *= recip_norm;
-    this->quaternion_.y() *= recip_norm;
-    this->quaternion_.z() *= recip_norm;
+    this->quaternion_.normalize();
 
     this->euler_ = this->quaternion_.ToEulerAngle();
   }
 
-  float InvSqrtf(float x) {
-#if 0
-  /* Fast inverse square-root */
-  /* See: http://en.wikipedia.org/wiki/Fast_inverse_square_root */
-	float halfx = 0.5f * x;
-	float y = x;
-	long i = *(long*)&y;
-	i = 0x5f3759df - (i>>1);
-	y = *(float*)&i;
-	y = y * (1.5f - (halfx * y * y));
-	y = y * (1.5f - (halfx * y * y));
-	return y;
-#else
-    return 1.0f / sqrtf(x);
-#endif
-  }
+  static float InvSqrtf(float x) { return 1.0f / std::sqrt(x); }
 
  private:
   static int CommandFunc(MadgwickAHRS* ahrs, int argc, char** argv) {
@@ -222,8 +200,8 @@ class MadgwickAHRS : public LibXR::Application {
       }
     } else if (argc == 4) {
       std::string cmd(argv[1]);
-      int time = std::stoi(argv[2]);
-      int interval = std::stoi(argv[3]);
+      int time = std::atoi(argv[2]);
+      int interval = std::atoi(argv[3]);
 
       interval = std::clamp(interval, 2, 1000);
 
