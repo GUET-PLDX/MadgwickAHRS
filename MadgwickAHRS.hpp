@@ -16,9 +16,26 @@ depends: []
 === END MANIFEST === */
 // clang-format on
 
+#include <cmath>
+
 #include "app_framework.hpp"
 #include "libxr.hpp"
 #include "transform.hpp"
+
+namespace MadgwickAHRSDetail {
+inline bool NormalizeGradient(float& s0, float& s1, float& s2, float& s3) {
+  const float NORM_SQUARED = s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3;
+  if (!std::isfinite(NORM_SQUARED) || NORM_SQUARED <= 0.0f) {
+    return false;
+  }
+  const float RECIP_NORM = 1.0f / std::sqrt(NORM_SQUARED);
+  s0 *= RECIP_NORM;
+  s1 *= RECIP_NORM;
+  s2 *= RECIP_NORM;
+  s3 *= RECIP_NORM;
+  return true;
+}
+}  // namespace MadgwickAHRSDetail
 
 class MadgwickAHRS : public LibXR::Application {
  public:
@@ -143,19 +160,12 @@ class MadgwickAHRS : public LibXR::Application {
       s3 = 4.0f * q1q1 * this->quaternion_.z() - q_2q1 * ax +
            4.0f * q2q2 * this->quaternion_.z() - q_2q2 * ay;
 
-      /* normalise step magnitude */
-      recip_norm = InvSqrtf(s0 * s0 + s1 * s1 + s2 * s2 + s3 * s3);
-
-      s0 *= recip_norm;
-      s1 *= recip_norm;
-      s2 *= recip_norm;
-      s3 *= recip_norm;
-
-      /* Apply feedback step */
-      q_dot1 -= beta_ * s0;
-      q_dot2 -= beta_ * s1;
-      q_dot3 -= beta_ * s2;
-      q_dot4 -= beta_ * s3;
+      if (MadgwickAHRSDetail::NormalizeGradient(s0, s1, s2, s3)) {
+        q_dot1 -= beta_ * s0;
+        q_dot2 -= beta_ * s1;
+        q_dot3 -= beta_ * s2;
+        q_dot4 -= beta_ * s3;
+      }
     }
 
     /* Integrate rate of change of quaternion to yield quaternion */
