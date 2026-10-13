@@ -2,23 +2,14 @@
 
 // clang-format off
 /* === MODULE MANIFEST V2 ===
-module_description: 提供姿态和航向参考系统（AHRS）功能的模块 / A module providing Attitude and Heading Reference System (AHRS) functionality
-constructor_args:
-  - beta: 0.05
-  - gyro_topic_name: "imu_gyro"
-  - accl_topic_name: "imu_accl"
-  - quaternion_topic_name: "ahrs_quaternion"
-  - euler_topic_name: "ahrs_euler"
-  - task_stack_depth: 2048
-template_args: []
-required_hardware: ramfs
+module_description: 提供姿态和航向参考系统（AHRS）功能的模块 / A module providing Attitude and Heading
+  Reference System (AHRS) functionality
 depends: []
 === END MANIFEST === */
 // clang-format on
 
 #include <cmath>
 
-#include "app_framework.hpp"
 #include "libxr.hpp"
 #include "transform.hpp"
 
@@ -37,10 +28,9 @@ inline bool NormalizeGradient(float& s0, float& s1, float& s2, float& s3) {
 }
 }  // namespace MadgwickAHRSDetail
 
-class MadgwickAHRS : public LibXR::Application {
+class MadgwickAHRS {
  public:
-  MadgwickAHRS(LibXR::HardwareContainer& hw, LibXR::ApplicationManager& app,
-               float beta, const char* gyro_topic_name,
+  MadgwickAHRS(LibXR::RamFS& ramfs, float beta, const char* gyro_topic_name,
                const char* accl_topic_name, const char* quaternion_topic_name,
                const char* euler_topic_name, uint32_t task_stack_depth)
       : beta_(beta),
@@ -51,16 +41,13 @@ class MadgwickAHRS : public LibXR::Application {
         euler_topic_(
             LibXR::Topic::CreateTopic<decltype(euler_)>(euler_topic_name)),
         cmd_file_(LibXR::RamFS::CreateFile("ahrs", CommandFunc, this)) {
-    UNUSED(hw);
-    app.Register(*this);
-
-    hw.template FindOrExit<LibXR::RamFS>({"ramfs"})->Add(cmd_file_);
+    (&ramfs)->Add(cmd_file_);
 
     thread_.Create(this, ThreadFunc, "ahrs", task_stack_depth,
                    LibXR::Thread::Priority::HIGH);
   }
 
-  void OnMonitor() override {
+  void OnMonitor() {
     if (std::isinf(quaternion_.x()) || std::isinf(quaternion_.y()) ||
         std::isinf(quaternion_.z()) || std::isinf(quaternion_.w()) ||
         std::isnan(quaternion_.x()) || std::isnan(quaternion_.y()) ||
